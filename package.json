@@ -1,0 +1,14 @@
+{
+  "name": "chrono-api",
+  "version": "1.0.0",
+  "description": "Natural language date parsing API using Chrono",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "chrono-node": "^2.6.1",
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  }
+}
