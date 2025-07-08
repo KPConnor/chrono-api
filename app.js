@@ -6,43 +6,50 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Simple timezone abbreviation mapping
+// Map abbreviations to IANA zones
 const tzMap = {
-  EST: '-05:00',
-  EDT: '-04:00',
-  CST: '-06:00',
-  CDT: '-05:00',
-  MST: '-07:00',
-  MDT: '-06:00',
-  PST: '-08:00',
-  PDT: '-07:00',
+  EST: 'America/New_York',
+  EDT: 'America/New_York',
+  CST: 'America/Chicago',
+  CDT: 'America/Chicago',
+  MST: 'America/Denver',
+  MDT: 'America/Denver',
+  PST: 'America/Los_Angeles',
+  PDT: 'America/Los_Angeles'
+};
+
+// Map IANA zones to offsets (simplified version)
+const offsetMap = {
+  'America/New_York': '-04:00',
+  'America/Chicago': '-05:00',
+  'America/Denver': '-06:00',
+  'America/Los_Angeles': '-07:00'
 };
 
 app.post('/parse', (req, res) => {
-  const { phrase } = req.body;
+  const { phrase, timezone = 'America/New_York' } = req.body;
+
   if (!phrase) return res.status(400).json({ error: 'Missing phrase' });
 
   const parsed = chrono.parse(phrase);
   if (!parsed.length) return res.status(400).json({ error: 'Could not parse phrase' });
 
-  const result = parsed[0];
-  const startDate = result.start.date();
+  const startDate = parsed[0].start.date();
 
-  // Detect timezone abbreviation
+  // Look for timezone abbreviation in the phrase
   const tzMatch = phrase.match(/\b(EST|EDT|CST|CDT|MST|MDT|PST|PDT)\b/i);
-  const offset = tzMatch ? tzMap[tzMatch[1].toUpperCase()] : '-04:00'; // default to Eastern
+  const tzName = tzMatch ? tzMap[tzMatch[1].toUpperCase()] : timezone;
+  const offset = offsetMap[tzName] || '-04:00'; // default to Eastern
 
-  // Build ISO strings with timezone offset
   const startIso = startDate.toISOString().split('.')[0] + offset;
-
   const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
   const endIso = endDate.toISOString().split('.')[0] + offset;
 
   res.json({
-    summary: phrase.replace(result.text, '').trim() || 'Untitled Event',
+    summary: phrase.replace(parsed[0].text, '').trim() || 'Untitled Event',
     start: startIso,
     end: endIso,
-    timezone: tzMatch ? tzMatch[1].toUpperCase() : 'EST',
+    timezone: tzName,
     allDay: /\ball day\b|\bbirthday\b|\bholiday\b/i.test(phrase)
   });
 });
